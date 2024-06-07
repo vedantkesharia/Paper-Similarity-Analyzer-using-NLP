@@ -1,5 +1,5 @@
 import PyPDF2
-import spacy
+# import spacy
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -16,17 +16,27 @@ import matplotlib.pyplot as plt
 import scipy.cluster.hierarchy as shc
 import re
 import os
+# from transformers import AutoTokenizer, AutoModelForTokenClassification
+# from transformers import pipeline
+
 
 # Load Spacy model
-nlp = spacy.load("en_core_web_sm")
+# nlp = spacy.load("en_core_web_sm")
 
 # Download NLTK resources
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
+nltk.download('maxent_ne_chunker')
+nltk.download('words')
+nltk.download('averaged_perceptron_tagger')
 
 # Load external data
 from model_names import model_names, domain_names, library_names
+
+# # Load the tokenizer and model from the transformers library
+# tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-large-cased-finetuned-conll03-english")
+# model = AutoModelForTokenClassification.from_pretrained("dbmdz/bert-large-cased-finetuned-conll03-english")
 
 # Load Doc2Vec model
 with open("doc2vec_model.pkl", "rb") as f:
@@ -58,11 +68,36 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text()
     return text
 
-# Function to extract organizations from text
+
 def extract_organizations(text):
-    doc = nlp(text)
-    organizations = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "PRODUCT", "WORK_OF_ART"]]
+    words = nltk.word_tokenize(text)
+    pos_tags = nltk.pos_tag(words)
+    named_entities = nltk.ne_chunk(pos_tags, binary=False)
+    
+    organizations = []
+    for subtree in named_entities:
+        if isinstance(subtree, nltk.Tree) and subtree.label() in ['ORGANIZATION', 'WORK_OF_ART','PRODUCT']:
+            entity_name = " ".join([token for token, pos in subtree.leaves()])
+            organizations.append(entity_name)
+    
     return organizations
+
+
+
+
+
+# # Create a NER pipeline
+# ner_pipeline = pipeline("ner", model=model, tokenizer=tokenizer)
+# def extract_organizations(text):
+#     ner_results = ner_pipeline(text)
+#     organizations = [result['word'] for result in ner_results if result['entity'] == 'B-ORG' or result['entity'] == 'I-ORG']
+#     return organizations
+
+# Function to extract organizations from text
+# def extract_organizations(text):
+#     doc = nlp(text)
+#     organizations = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "PRODUCT", "WORK_OF_ART"]]
+#     return organizations
 
 # Function to compare organizations mentioned in papers with model names, library names, and domain names
 def compare_entities(papers_entities):
@@ -208,26 +243,62 @@ def extract_abstract(text, max_word_count=250):
         return None
 
 # Function to compute similarity between user abstract and papers' abstracts
+# def compute_similarity(user_abstract, papers_abstracts):
+#     documents = [user_abstract] + papers_abstracts
+#     vectorizer = TfidfVectorizer().fit_transform(documents)
+#     vectors = vectorizer.toarray()
+
+#     cosine_matrix = cosine_similarity(vectors)
+#     user_similarity_scores = cosine_matrix[0][1:]
+
+#     return user_similarity_scores
+
 def compute_similarity(user_abstract, papers_abstracts):
-    documents = [user_abstract] + papers_abstracts
+    documents = list(papers_abstracts.values())  # Extracting only the abstracts
+    documents.append(user_abstract)  # Adding the user's abstract to the list
     vectorizer = TfidfVectorizer().fit_transform(documents)
     vectors = vectorizer.toarray()
 
     cosine_matrix = cosine_similarity(vectors)
-    user_similarity_scores = cosine_matrix[0][1:]
+    user_similarity_scores = cosine_matrix[-1][:-1]  # Removing the similarity score of the user's abstract with itself
 
     return user_similarity_scores
 
+
 def extract_abstracts_from_directory(directory):
-    abstracts = []
+    abstracts = {}
     for filename in os.listdir(directory):
         if filename.endswith('.pdf'):
             pdf_path = os.path.join(directory, filename)
             text = extract_text_from_pdf(pdf_path)
             abstract = extract_abstract(text)
             if abstract:
-                abstracts.append(abstract)
+                abstracts[filename] = abstract
     return abstracts
+
+
+# def extract_abstracts_from_directory(directory):
+#     abstracts = []
+#     for filename in os.listdir(directory):
+#         if filename.endswith('.pdf'):
+#             pdf_path = os.path.join(directory, filename)
+#             text = extract_text_from_pdf(pdf_path)
+#             abstract = extract_abstract(text)
+#             if abstract:
+#                 abstracts.append((filename, abstract))
+#     return abstracts
+
+
+# def extract_abstracts_from_directory(directory):
+#     abstracts = []
+#     for filename in os.listdir(directory):
+#         if filename.endswith('.pdf'):
+#             pdf_path = os.path.join(directory, filename)
+#             text = extract_text_from_pdf(pdf_path)
+#             abstract = extract_abstract(text)
+#             if abstract:
+#                 abstracts.append(abstract)
+#     return abstracts
 
 def preprocess_text(text):
     sentences = nltk.sent_tokenize(text)
@@ -253,20 +324,19 @@ def main():
         else:
             # Extract abstracts from PDF files in the directory
             papers_abstracts_raw = extract_abstracts_from_directory(pdf_directory)
-            papers_abstracts = [preprocess_text(abstract) for abstract in papers_abstracts_raw] 
+            papers_abstracts = {filename: preprocess_text(abstract) for filename, abstract in papers_abstracts_raw.items()}
             
             # Compute similarity between user abstract and papers' abstracts
             similarity_scores = compute_similarity(user_abstract, papers_abstracts)
 
             # Sort papers by similarity score and select top 5
             top_indices = sorted(range(len(similarity_scores)), key=lambda i: similarity_scores[i], reverse=True)[:5]
-            top_papers = [(os.listdir(pdf_directory)[i], similarity_scores[i]) for i in top_indices]
+            top_papers = [(list(papers_abstracts.keys())[i], similarity_scores[i]) for i in top_indices]
 
             # Display top 5 papers
             st.subheader("Top 5 Papers:")
             for i, (paper, score) in enumerate(top_papers):
-                paper_index = top_indices[i]
-                abstract = papers_abstracts_raw[paper_index] if paper_index < len(papers_abstracts_raw) else "Abstract not available"
+                abstract = papers_abstracts.get(paper, "Abstract not available")
                 st.write(f"**Paper {i+1}:** {paper}")
                 st.write(f"**Similarity Score:** {score:.2f}")
                 st.write(f"**Abstract:** {abstract}")
@@ -333,9 +403,10 @@ def main():
             st.subheader("Hierarchical Clustering Dendrogram")
             plot_dendrogram(similarity_matrix_transformer)
 
-# Check if the script is being run directly
 if __name__ == "__main__":
     main()
+
+
 
 # def main():
 #     st.title("Research Paper Similarity Analyzer")
