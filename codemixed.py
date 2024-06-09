@@ -25,6 +25,7 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 # Load Spacy model
 # nlp = spacy.load("en_core_web_sm")
 
+
 # Download NLTK resources
 nltk.download('punkt')
 nltk.download('stopwords')
@@ -36,9 +37,12 @@ nltk.download('averaged_perceptron_tagger')
 # Load external data
 from model_names import model_names, domain_names, library_names
 
+
+
 # # Load the tokenizer and model from the transformers library
 # tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-large-cased-finetuned-conll03-english")
 # model = AutoModelForTokenClassification.from_pretrained("dbmdz/bert-large-cased-finetuned-conll03-english")
+
 
 # Load Doc2Vec model
 with open("doc2vec_model.pkl", "rb") as f:
@@ -46,6 +50,7 @@ with open("doc2vec_model.pkl", "rb") as f:
 
 # Initialize Sentence Transformer model
 sentence_model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+
 
 # Function to preprocess text
 def preprocess_and_join(text):
@@ -101,6 +106,8 @@ def extract_organizations(text):
 #     organizations = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "PRODUCT", "WORK_OF_ART"]]
 #     return organizations
 
+
+
 # Function to compare organizations mentioned in papers with model names, library names, and domain names
 def compare_entities(papers_entities):
     entities = []
@@ -128,6 +135,7 @@ def compare_entities(papers_entities):
         }
         entities.append(entity_dict)
     return entities
+
 
 # Function to calculate Jaccard similarity
 def calculate_jaccard_similarity(set1, set2):
@@ -180,6 +188,7 @@ def calculate_similarity_transformer(documents):
     similarity_matrix = cosine_similarity(embeddings)
     return similarity_matrix
 
+
 # Function to plot Hierarchical Clustering Dendrogram
 def plot_dendrogram(similarity_matrix, method='ward'):
     plt.figure(figsize=(10, 7))
@@ -190,6 +199,7 @@ def plot_dendrogram(similarity_matrix, method='ward'):
     plt.ylim((0, 1))
     plt.axhline(y=1, color='r', linestyle='--')
     st.pyplot(plt)
+
 
 # Function to extract abstract from text
 def extract_abstract(text, max_word_count=250):
@@ -244,6 +254,7 @@ def extract_abstract(text, max_word_count=250):
     else:
         return None
 
+
 # Function to compute similarity between user abstract and papers' abstracts
 # def compute_similarity(user_abstract, papers_abstracts):
 #     documents = [user_abstract] + papers_abstracts
@@ -254,6 +265,7 @@ def extract_abstract(text, max_word_count=250):
 #     user_similarity_scores = cosine_matrix[0][1:]
 
 #     return user_similarity_scores
+
 
 def compute_similarity(user_abstract, papers_abstracts):
     documents = list(papers_abstracts.values())  # Extracting only the abstracts
@@ -302,6 +314,7 @@ def extract_abstracts_from_directory(directory):
 #                 abstracts.append(abstract)
 #     return abstracts
 
+
 def generate_summary(text):
     # Load BART model and tokenizer
     model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
@@ -318,8 +331,10 @@ def generate_summary(text):
     
     return summary
 
+
 # def generate_summary(text, max_length=1024):
 #     # Load pre-trained model and tokenizer
+
 #     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
 #     model = GPT2LMHeadModel.from_pretrained("gpt2")
 
