@@ -340,6 +340,15 @@ def main():
                 st.write(f"**Paper {i+1}:** {paper}")
                 st.write(f"**Similarity Score:** {score:.2f}")
                 st.write(f"**Abstract:** {abstract}")
+
+                if st.button(f"Show Models and Libraries for Paper {i+1}"):
+                    text = extract_text_from_pdf(os.path.join(pdf_directory, paper))
+                    entities = extract_organizations(text)
+                    matched_entities = compare_entities([entities])[0]
+                    st.write(f"**Models:** {', '.join(matched_entities['models']) if matched_entities['models'] else 'None'}")
+                    st.write(f"**Libraries:** {', '.join(matched_entities['libraries']) if matched_entities['libraries'] else 'None'}")
+                    st.write(f"**Domains:** {', '.join(matched_entities['domains']) if matched_entities['domains'] else 'None'}")
+                    
                 st.write("\n")
 
     if uploaded_files:
