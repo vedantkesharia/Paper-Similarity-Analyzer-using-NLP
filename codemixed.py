@@ -21,7 +21,7 @@ import os
 from transformers import BartForConditionalGeneration, BartTokenizer
 from transformers import BertTokenizer, BertForSequenceClassification, pipeline
 from transformers import T5Tokenizer, T5ForConditionalGeneration
-
+from transformers import GPT2Tokenizer, GPT2LMHeadModel
 # Load Spacy model
 # nlp = spacy.load("en_core_web_sm")
 
@@ -302,44 +302,54 @@ def extract_abstracts_from_directory(directory):
 #                 abstracts.append(abstract)
 #     return abstracts
 
-# def generate_summary(text):
-#     # Load BART model and tokenizer
-#     model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
-#     tokenizer = BartTokenizer.from_pretrained("facebook/bart-large-cnn")
-    
-#     # Tokenize the input text
-#     inputs = tokenizer([text], max_length=1024, return_tensors="pt", truncation=True)
-    
-#     # Generate summary
-#     summary_ids = model.generate(inputs["input_ids"], max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
-    
-#     # Decode the summary tokens back to text
-#     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
-    
-#     return summary
-
 def generate_summary(text):
-    # Load T5 model and tokenizer
-    model_name = "t5-base"
-    model = T5ForConditionalGeneration.from_pretrained(model_name)
-    tokenizer = T5Tokenizer.from_pretrained(model_name)
+    # Load BART model and tokenizer
+    model = BartForConditionalGeneration.from_pretrained("facebook/bart-large-cnn")
+    tokenizer = BartTokenizer.from_pretrained("facebook/bart-large-cnn")
     
     # Tokenize the input text
-    inputs = tokenizer(text, return_tensors="pt", max_length=512, truncation=True)
+    inputs = tokenizer([text], max_length=1024, return_tensors="pt", truncation=True)
     
     # Generate summary
-    summary_ids = model.generate(inputs["input_ids"], max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
+    summary_ids = model.generate(inputs["input_ids"], max_length=350, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
     
     # Decode the summary tokens back to text
     summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
     
     return summary
 
+# def generate_summary(text, max_length=1024):
+#     # Load pre-trained model and tokenizer
+#     tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+#     model = GPT2LMHeadModel.from_pretrained("gpt2")
+
+#     # Split input text into chunks of appropriate length
+#     input_chunks = [text[i:i+max_length] for i in range(0, len(text), max_length)]
+
+#     # Generate summary for each chunk
+#     summaries = []
+
+#     for chunk in input_chunks:
+#         # Tokenize input text chunk
+#         inputs = tokenizer.encode("summarize: " + chunk, return_tensors="pt", truncation=True)
+
+#         # Generate summary for chunk
+#         summary_ids = model.generate(inputs, max_length=150, min_length=40, length_penalty=2.0, num_beams=4, early_stopping=True)
+
+#         # Decode summary for chunk
+#         summary = tokenizer.decode(summary_ids[0], skip_special_tokens=True)
+#         summaries.append(summary)
+
+#     # Combine summaries of all chunks
+#     combined_summary = " ".join(summaries)
+    
+#     return combined_summary
 
 
 def preprocess_text(text):
     sentences = nltk.sent_tokenize(text)
     return ' '.join(sentences)
+
 
 # Main function
 def main():
