@@ -2,3 +2,6 @@ data
 extraction.ipynb
 logs
 model_save_path
+research_paper_dataset.csv
+citation_model.keras
+tokenizer.pkl
